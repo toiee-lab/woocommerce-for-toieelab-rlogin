@@ -34,6 +34,14 @@ class WooCommerce_for_toieeLab_RLogin {
 
         /* テンプレートが選ばれる前に実行 */
         add_action( 'template_redirect', array( $this, 'woocommerce_rlogin' ) );
+
+	    /* ログアウト後は、トップページへ */
+	    add_action('wp_logout',function (){
+		    $url = site_url('', 'http');
+		    wp_safe_redirect($url);
+		    exit();
+	    });
+
     }
 
     public function add_route(){
@@ -57,6 +65,11 @@ class WooCommerce_for_toieeLab_RLogin {
     public function woocommerce_rlogin()
     {
         global $wp_query;
+
+	    // 管理バーを非表示に
+	    if ( ! current_user_can( 'manage_options' ) ) {
+		    show_admin_bar( false );
+	    }
 
         // woocommerce_login_check が指定されている場合、実行する
         $control_action = isset ($wp_query->query_vars['woocommerce_rlogin']) ? $wp_query->query_vars['woocommerce_rlogin'] : '';
