@@ -66,11 +66,6 @@ class WooCommerce_for_toieeLab_RLogin {
     {
         global $wp_query;
 
-	    // 管理バーを非表示に
-	    if ( ! current_user_can( 'manage_options' ) ) {
-		    show_admin_bar( false );
-	    }
-
         // woocommerce_login_check が指定されている場合、実行する
         $control_action = isset ($wp_query->query_vars['woocommerce_rlogin']) ? $wp_query->query_vars['woocommerce_rlogin'] : '';
         if ($control_action == 'woocommerce_rlogin'
