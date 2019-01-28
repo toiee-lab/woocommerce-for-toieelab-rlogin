@@ -42,6 +42,8 @@ class WooCommerce_for_toieeLab_RLogin {
 		    exit();
 	    });
 
+	    add_shortcode( 'rlogin_content', array($this, 'shortcode_rlogin_content') );
+
     }
 
     public function add_route(){
@@ -104,8 +106,6 @@ class WooCommerce_for_toieeLab_RLogin {
                     $user_id = wp_create_user($udata['user_email'], wp_generate_password(), $udata['user_email']);
                     //メインサイトのIDを登録
                     update_user_meta( $user_id, 'wcrlogin_user_id', $udata['wcrlogin_user_id']);
-
-                    var_dump($user_id);
                 }
                 else{
                     $user_id = $user_query->results[0]->ID;
@@ -163,15 +163,13 @@ class WooCommerce_for_toieeLab_RLogin {
                 $wcr_login_url = get_option( 'wcr_login_url', '' );
                 $wcr_login_product_ids = get_option( 'wcr_login_product_ids', '');
                 $wcr_login_enable = get_option( 'wcr_login_enable', 0 );
-                if($wcr_login_enable ){
-                    $radio_enable = ' checked ';
-                    $radio_disable = '';
-                }
-                else{
-                    $radio_enable = '';
-                    $radio_disable = ' checked ';
-                }
 
+                $radio_enable = $radio_enable_part = $radio_disable = false;
+                switch( $wcr_login_enable ){
+                    case 1 : $radio_enable = ' checked="checked"'; break;
+                    case 2 : $radio_enable_part = ' checked="checked"'; break;
+                    default : $radio_disable = ' checked="checked"';
+                }
 
                 ?>
                 <div class="wrap">
@@ -191,7 +189,8 @@ class WooCommerce_for_toieeLab_RLogin {
                         <input type="regular-text" name="wcr_login_product_ids" value="<?php echo $wcr_login_product_ids;?>">
 
                         <h3>会員認証の設定</h3>
-                        <label>有効にする <input type="radio" name="wcr_login_enable" value="1"<?php echo $radio_enable;?>></label><br>
+                        <label>有効にする(全て非公開) <input type="radio" name="wcr_login_enable" value="1"<?php echo $radio_enable;?>></label><br>
+                        <label>有効にする(一部非公開) <input type="radio" name="wcr_login_enable" value="2"<?php echo $radio_enable_part;?>></label><br>
                         <label>無効にする <input type="radio" name="wcr_login_enable" value="0"<?php echo $radio_disable;?>></label>
 
 
@@ -204,22 +203,54 @@ class WooCommerce_for_toieeLab_RLogin {
         );
     }
 
+	/**
+     * 閲覧制限のために「ログイン画面」をだす
+	 * @param $template
+	 *
+	 * @return string
+	 */
     public function display_login( $template ){
 
         /* 会員認証が有効で、ログインしていない場合 */
         $wcr_login_enable = get_option( 'wcr_login_enable', 0 );
-        if( $wcr_login_enable && (!is_user_logged_in()) ){
+        if( $wcr_login_enable === '1' && (!is_user_logged_in()) ){
 
-            // テーマ内にファイルがあれば、使う
-            $login_file_path = get_stylesheet_directory().'/wc-rlogin/login.php';
-            if( file_exists( $login_file_path ) ) {
-                return $login_file_path;
-            }
-            else{
-                return plugin_dir_path( __FILE__ ).'wc-rlogin/login.php';
-            }
+	        // テーマ内にファイルがあれば、使う
+	        $login_file_path = get_stylesheet_directory().'/wc-rlogin/login.php';
+	        if( file_exists( $login_file_path ) ) {
+		        return $login_file_path;
+	        }
+	        else{
+		        return plugin_dir_path( __FILE__ ).'wc-rlogin/login.php';
+	        }
         }
 
         return $template;
+    }
+
+    public function shortcode_rlogin_content( $atts, $content ){
+	    $atts = shortcode_atts( array(
+	    ), $atts );
+
+	    $wcr_login_enable = get_option( 'wcr_login_enable', 0 );
+	    if( !is_user_logged_in() ){
+		    // テーマ内にファイルがあれば、使う
+		    $login_file_path = get_stylesheet_directory().'/wc-rlogin/login_form.php';
+		    if( !file_exists( $login_file_path ) ) {
+			    $login_file_path = plugin_dir_path( __FILE__ ).'wc-rlogin/login_form.php';
+		    }
+
+		    ob_start();
+		    echo "<h2>制限コンテンツです</h2>";
+		    require_once( $login_file_path );
+
+		    $content = ob_get_contents();
+		    ob_end_clean();
+
+		    return $content;
+        }
+	    else{
+	        return $content;
+        }
     }
 }
